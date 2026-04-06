@@ -334,6 +334,10 @@ function buildTabs(){
       ${c.icon} ${c.k} <span class="tbadge">${n}</span>
     </div>`;
   });
+  // Tim tab
+  h+=`<div class="tab${curTab==='__TIM__'?' on':''}" onclick="switchTab('__TIM__')">
+    👥 Po uposlenici <span class="tbadge">4</span>
+  </div>`;
   document.getElementById('tabs').innerHTML=h;
 }
 
@@ -383,9 +387,144 @@ function buildTable(){
 }
 
 function updateAll(){buildSumbar();buildTabs();buildTable();}
-function render(){buildTable();buildSumbar();}
+function render(){
+  if(curTab==='__TIM__'){ buildTeamView(); return; }
+  buildTable();buildSumbar();
+}
 
-function switchTab(k){curTab=k;buildTabs();buildSumbar();buildTable();}
+function buildTeamView(){
+  const AGENTS = ['Tijana','Azra','Slađana','Alena'];
+  const STATUSI = ['Nije kontaktirana','Kontaktirana','Zainteresovana','Potvrđena','Odbijena'];
+  const SC = {'Nije kontaktirana':'#aaa','Kontaktirana':'#1a4fa0','Zainteresovana':'#1a6040','Potvrđena':'#b8872a','Odbijena':'#9b2020'};
+  const SB = {'Nije kontaktirana':'#f5f5f5','Kontaktirana':'#e8effc','Zainteresovana':'#e6f7ef','Potvrđena':'#f5e8cc','Odbijena':'#fdeaea'};
+
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:4px">';
+
+  AGENTS.forEach(agent=>{
+    const moji = ALL.filter(l=>AG[l.id]===agent);
+    const samoinic = moji.filter(l=>ST[l.id]!=='Nije kontaktirana');
+    const zainter = moji.filter(l=>ST[l.id]==='Zainteresovana'||ST[l.id]==='Potvrđena');
+    const potvr = moji.filter(l=>ST[l.id]==='Potvrđena');
+
+    const initials = agent.slice(0,2).toUpperCase();
+    const colors = {Tijana:'#8b2045',Azra:'#1a4fa0',Slađana:'#b8872a',Alena:'#1a6040'};
+    const bgs = {Tijana:'#fde8f0',Azra:'#e8effc',Slađana:'#f5e8cc',Alena:'#e6f7ef'};
+    const col = colors[agent]||'#555';
+    const bg = bgs[agent]||'#f0efec';
+
+    // Progress bar
+    const pct = moji.length ? Math.round(samoinic.length/moji.length*100) : 0;
+
+    h+=`<div style="background:#fff;border-radius:12px;border:1.5px solid #e5e2db;overflow:hidden">
+      <!-- Header -->
+      <div style="padding:16px 18px;border-bottom:1px solid #f0ede8;display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${bg};color:${col};font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center">${initials}</div>
+        <div>
+          <div style="font-weight:600;font-size:14px">${agent}</div>
+          <div style="font-size:11px;color:#999">${moji.length} preuzeto · ${samoinic.length} kontaktirala</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:22px;font-weight:700;color:${col}">${pct}%</div>
+          <div style="font-size:10px;color:#bbb">kontaktirano</div>
+        </div>
+      </div>
+      <!-- Progress bar -->
+      <div style="height:4px;background:#f0ede8">
+        <div style="height:4px;background:${col};width:${pct}%;transition:width .3s"></div>
+      </div>
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #f0ede8">
+        <div style="padding:10px;text-align:center;border-right:1px solid #f0ede8">
+          <div style="font-size:18px;font-weight:700;color:#1a4fa0">${samoinic.length}</div>
+          <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Kontaktirale</div>
+        </div>
+        <div style="padding:10px;text-align:center;border-right:1px solid #f0ede8">
+          <div style="font-size:18px;font-weight:700;color:#1a6040">${zainter.length}</div>
+          <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Zainteresovane</div>
+        </div>
+        <div style="padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:#b8872a">${potvr.length}</div>
+          <div style="font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em">Potvrđene</div>
+        </div>
+      </div>
+      <!-- Leads list -->
+      <div style="max-height:320px;overflow-y:auto">`;
+
+    if(moji.length===0){
+      h+=`<div style="padding:24px;text-align:center;color:#ccc;font-size:12px">Nema preuzetih leadova</div>`;
+    } else {
+      // Sort: active statuses first
+      const sorted = [...moji].sort((a,b)=>{
+        const order = {'Potvrđena':0,'Zainteresovana':1,'Kontaktirana':2,'Odbijena':3,'Nije kontaktirana':4};
+        return (order[ST[a.id]]||4)-(order[ST[b.id]]||4);
+      });
+      sorted.forEach(l=>{
+        const s = ST[l.id];
+        const sc = SC[s]||'#aaa';
+        const sb = SB[s]||'#f5f5f5';
+        const dot = s==='Nije kontaktirana'?'⚪':s==='Kontaktirana'?'📞':s==='Zainteresovana'?'🔥':s==='Potvrđena'?'✅':'❌';
+        h+=`<div style="padding:9px 16px;border-bottom:1px solid #f7f5f1;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="switchTabAndFilter('${agent}','${s}')">
+          <span style="font-size:13px">${dot}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.ko}</div>
+            <div style="font-size:10px;color:#aaa">${l.kat}</div>
+          </div>
+          <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:${sb};color:${sc};white-space:nowrap">${s}</span>
+        </div>`;
+      });
+    }
+    h+=`</div></div>`;
+  });
+
+  // Neraspoređeni (bez agenta, ali kontaktirali nešto)
+  const aktivniBezeAgenta = ALL.filter(l=>!AG[l.id]&&ST[l.id]!=='Nije kontaktirana');
+  if(aktivniBezeAgenta.length>0){
+    h+=`<div style="background:#fff;border-radius:12px;border:1.5px solid #e5e2db;overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid #f0ede8">
+        <div style="font-weight:600;font-size:14px">⚠️ Bez agenta — ali kontaktirano</div>
+        <div style="font-size:11px;color:#999">${aktivniBezeAgenta.length} leadova promijenjenih bez agenta</div>
+      </div>
+      <div style="max-height:200px;overflow-y:auto">`;
+    aktivniBezeAgenta.forEach(l=>{
+      h+=`<div style="padding:8px 16px;border-bottom:1px solid #f7f5f1;font-size:12px">
+        <strong>${l.ko}</strong> — ${ST[l.id]}</div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  h+='</div>';
+
+  // Update header meta
+  document.getElementById('hmeta').innerHTML=`Pregled po uposlenicama`;
+  document.getElementById('finfo').textContent='';
+  document.getElementById('tbody').innerHTML='';
+  document.querySelector('main').innerHTML=h;
+}
+
+function switchTabAndFilter(agent, status){
+  curTab='Sve';
+  buildTabs();
+  buildSumbar();
+  document.getElementById('fa').value=agent;
+  if(status&&status!=='Nije kontaktirana') document.getElementById('fs').value=status;
+  buildTable();
+}
+
+function switchTab(k){
+  curTab=k;
+  buildTabs();
+  buildSumbar();
+  if(k==='__TIM__'){
+    // rebuild main structure for team view
+    document.querySelector('main').innerHTML='<div class="tw"><table><thead><tr><th></th><th>Kompanija</th><th>Kontakt osoba</th><th>E-mail</th><th>Telefon</th><th>Napomena</th><th>Agent</th><th>Status</th></tr></thead><tbody id="tbody"></tbody></table></div>';
+    buildTeamView();
+  } else {
+    if(!document.getElementById('tbody')){
+      document.querySelector('main').innerHTML='<div class="tw"><table><thead><tr><th></th><th>Kompanija</th><th>Kontakt osoba</th><th>E-mail</th><th>Telefon</th><th>Napomena</th><th>Agent</th><th>Status</th></tr></thead><tbody id="tbody"></tbody></table></div>';
+    }
+    buildTable();
+  }
+}
 function setFS(s){document.getElementById('fs').value=s;render();}
 function reset(){
   document.getElementById('srch').value='';
