@@ -136,6 +136,7 @@ tbody tr:hover td{background:#fafaf8}
 .as-a{color:var(--blue);border-color:#4c8fd4;background:var(--blue-lt)}
 .as-sl{color:var(--gold);border-color:var(--gold);background:var(--gold-lt)}
 .as-al{color:var(--green);border-color:#4caf87;background:var(--green-lt)}
+.as-se{color:#6b3580;border-color:#a06cc0;background:#f3eafc}
 
 /* ── EMPTY ── */
 .empty{text-align:center;padding:60px;color:#ccc;font-size:14px}
@@ -164,7 +165,8 @@ tbody tr:hover td{background:#fafaf8}
   <input class="srch" type="text" id="srch" placeholder="Pretraži kompaniju, mail, napomenu…" oninput="render()">
   <select class="flt" id="fa" onchange="render()">
     <option value="">Svi agenti</option>
-    <option>Tijana</option><option>Azra</option><option>Slađana</option><option>Alena</option>
+    <option>Tijana</option><option>Azra</option><option>Slađana</option><option>Alena</option><option>Selma</option>
+  </select>
   </select>
   <select class="flt" id="fs" onchange="render()">
     <option value="">Svi statusi</option>
@@ -236,6 +238,7 @@ function aCls(a){
   if(a==='Azra')return 'as-a';
   if(a==='Slađana')return 'as-sl';
   if(a==='Alena')return 'as-al';
+  if(a==='Selma')return 'as-se';
   return '';
 }
 function flag(n){ const m=(n||'').match(/🇧🇦|🇭🇷|🇸🇮|🇷🇸|🇲🇪/); return m?m[0]:''; }
@@ -372,7 +375,7 @@ function buildTable(){
       <td>
         <select class="as ${aCls(AG[l.id])}" onchange="markA(${l.id},this)">
           <option value="">—</option>
-          ${['Tijana','Azra','Slađana','Alena'].map(a=>`<option${AG[l.id]===a?' selected':''}>${a}</option>`).join('')}
+          ${['Tijana','Azra','Slađana','Alena','Selma'].map(a=>`<option${AG[l.id]===a?' selected':''}>${a}</option>`).join('')}
         </select>
       </td>
       <td>
@@ -393,7 +396,7 @@ function render(){
 }
 
 function buildTeamView(){
-  const AGENTS = ['Tijana','Azra','Slađana','Alena'];
+  const AGENTS = ['Tijana','Azra','Slađana','Alena','Selma'];
   const STATUSI = ['Nije kontaktirana','Kontaktirana','Zainteresovana','Potvrđena','Odbijena'];
   const SC = {'Nije kontaktirana':'#aaa','Kontaktirana':'#1a4fa0','Zainteresovana':'#1a6040','Potvrđena':'#b8872a','Odbijena':'#9b2020'};
   const SB = {'Nije kontaktirana':'#f5f5f5','Kontaktirana':'#e8effc','Zainteresovana':'#e6f7ef','Potvrđena':'#f5e8cc','Odbijena':'#fdeaea'};
@@ -407,8 +410,8 @@ function buildTeamView(){
     const potvr = moji.filter(l=>ST[l.id]==='Potvrđena');
 
     const initials = agent.slice(0,2).toUpperCase();
-    const colors = {Tijana:'#8b2045',Azra:'#1a4fa0',Slađana:'#b8872a',Alena:'#1a6040'};
-    const bgs = {Tijana:'#fde8f0',Azra:'#e8effc',Slađana:'#f5e8cc',Alena:'#e6f7ef'};
+    const colors = {Tijana:'#8b2045',Azra:'#1a4fa0',Slađana:'#b8872a',Alena:'#1a6040',Selma:'#6b3580'};
+    const bgs = {Tijana:'#fde8f0',Azra:'#e8effc',Slađana:'#f5e8cc',Alena:'#e6f7ef',Selma:'#f3eafc'};
     const col = colors[agent]||'#555';
     const bg = bgs[agent]||'#f0efec';
 
