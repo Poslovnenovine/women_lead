@@ -821,7 +821,7 @@ const FB_KEY = 'AIzaSyC2U-anEj3D1LpuuhbtpQ7MKtHja26H85s';
 let _lastFetch = 0;
 
 // API key loaded directly
-window._ak = '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';
+window._ak = 'XE4f2x4MNUtEYFPnMepLkiCd6nVul7ukXNxdeSgbxpVROpW5Dp5LTdmHW7eTZ29m7pJlt2B9WANYeLrgYiuxYw-dtvw3gAA';
 // Always refresh from Firebase to pick up key updates
 fetch('https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json').then(r=>r.json()).then(k=>{if(k&&k.length>50)window._ak=k;}).catch(()=>{});
 try { if(!window._ak) window._ak = localStorage.getItem('w100_ak')||''; } catch(e) {}
