@@ -910,8 +910,6 @@ async function fbPull(){
 }
 
 // Override saveState to also push to Firebase
-const _origSaveState = saveState;
-function saveState(){
   _origSaveState();
   fbPush({...ST}, {...AG});
 }
