@@ -694,42 +694,27 @@ async function generateEmail(){
   document.getElementById('emodBody').innerHTML='<div class="emod-loading"><div class="spin"></div><br>Claude piše email...</div>';
   document.getElementById('emodTitle').textContent=l.ko;
   document.getElementById('emodFooter').style.display='none';
-  const apiKey = window._ak || localStorage.getItem('w100_ak') || '';
-  if(!apiKey){ document.getElementById('emodBody').innerHTML='<div style="padding:20px;color:red">API ključ nije postavljen</div>'; return; }
-  const prompt = `Napiši personalizirani prodajni email za Women 100 SHOP & SHOW EXPO 2026.
-Kompanija: ${l.ko}
-Kontakt osoba: ${l.ime||'Direktoru/Vlasnici'}
-Kategorija: ${l.kat}
-Personalizuj email za ovu kategoriju i kompaniju. Koristite template:
-Poštovana ${l.ime?l.ime.split(' ')[0]+',':''},
-Kontaktiramo vas vezano za WOMEN 100 SHOP & SHOW EXPO 2026 sajam, jer smatramo da bi vam mogao biti interesantan.
-Možemo li se kratko čuti ili dogovoriti sastanak online, da razmotrimo mogućnosti saradnje?
-Ovaj sajam će 30. - 31. maja u sarajevskoj Skenderiji okupiti više od 100 izlagača, 500 proizvoda, 10.000 posjetilaca.
-Već sada možete aktivirati izlagački profil na Women 100 platformi — online katalog dostupan 365 dana.
-BENEFITI ZA RANU PRIJAVU: digitalna promocija brenda, online katalog 365 dana, PR vidljivost.
-Srdačno, Women 100 Shop & Show Expo | Poslovne novine d.o.o. Sarajevo
-Vrati SAMO JSON: {"subject":"...","body":"...kompletan email..."}`;
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,messages:[{role:'user',content:prompt}]})
-    });
-    const d = await res.json();
-    if(!res.ok) throw new Error(d.error?.message||res.status);
-    const raw = d.content[0].text;
-    const m = raw.match(/\{[\s\S]*?"subject"[\s\S]*?"body"[\s\S]*?\}/);
+  // Get key: localStorage first (set by user via console), then Firebase
+  let apiKey = localStorage.getItem('w100_ak') || '';
+  if(!apiKey) {
+    try { const r=await fetch('https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json'); apiKey=await r.json()||''; } catch(e){}
+  }
+  if(!apiKey){document.getElementById('emodBody').innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">⚠ API ključ nije postavljen.<br>Kontaktirajte admina.</div>';return;}
+  const prompt=`Napiši personalizirani prodajni email za Women 100 SHOP & SHOW EXPO 2026. Kompanija: ${l.ko}. Kontakt: ${l.ime||''}. Kategorija: ${l.kat}. Personalizuj za ovu kategoriju i kompaniju. Koristite template: Poštovana ${l.ime?l.ime.split(' ')[0]+',':''} Kontaktiramo vas za WOMEN 100 EXPO 2026 sajam (30-31. maja, Skenderija Sarajevo). Ovaj sajam će okupiti 100+ izlagača i 10.000 posjetilaca. Benefiti: digitalna promocija, online katalog 365 dana, PR vidljivost. Srdačno, Women 100 | Poslovne novine d.o.o. Sarajevo. Vrati JSON: {"subject":"...","body":"..."}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const d=await res.json();
+    if(!res.ok)throw new Error(d.error?.message||res.status);
+    const raw=d.content[0].text;
+    const m=raw.match(/\{[\s\S]*?"subject"[\s\S]*?"body"[\s\S]*?\}/);
     let subj='WOMEN 100 EXPO 2026',body=raw;
     if(m){try{const p=JSON.parse(m[0]);subj=p.subject||subj;body=p.body||raw;}catch(e){}}
     _emodSubject=subj;
     document.getElementById('emodTitle').textContent='✓ Email spreman';
     document.getElementById('emodBody').innerHTML=`<div class="emod-subject">Subject</div><div class="emod-subject-val" id="emodSubjectVal">${subj}</div><div class="emod-subject">Poruka</div><textarea class="emod-text" id="emodTextArea" rows="14">${body}</textarea>`;
     document.getElementById('emodFooter').style.display='flex';
-  } catch(e) {
-    document.getElementById('emodBody').innerHTML=`<div style="padding:20px;color:#c0392b;font-size:13px">⚠ ${e.message}<br><br><button class="emod-btn" onclick="generateEmail()">↻ Pokušaj ponovo</button></div>`;
-  }
+  }catch(e){document.getElementById('emodBody').innerHTML=`<div style="padding:20px;color:#c0392b;font-size:13px">⚠ ${e.message}<br><br><button class="emod-btn" onclick="generateEmail()">↻ Pokušaj ponovo</button></div>`;}
 }
-
 function copyEmail(){
   const subj = document.getElementById('emodSubjectVal')?.textContent || _emodSubject || '';
   const body = document.getElementById('emodTextArea')?.value || '';
@@ -754,9 +739,7 @@ function openInMail(){
 }
 
 // Close modal on backdrop click
-document.getElementById('emailModal').addEventListener('click', function(e){
-  if(e.target === this) closeEmailModal();
-});
+(function(){ var em=document.getElementById('emailModal'); if(em) em.addEventListener('click', function(e){ if(e.target===this) closeEmailModal(); }); })();
 
 // ════════════════════════════════════════
 // FIREBASE REAL-TIME SYNC
@@ -765,7 +748,7 @@ const FB_URL = 'https://women100-ce14d-default-rtdb.firebaseio.com';
 const FB_KEY = 'AIzaSyC2U-anEj3D1LpuuhbtpQ7MKtHja26H85s';
 
 window._ak = localStorage.getItem('w100_ak') || ''; localStorage.setItem('w100_ak',window._ak);
-window._ak='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';localStorage.setItem('w100_ak',window._ak);
+window._ak = localStorage.getItem('w100_ak') || '';localStorage.setItem('w100_ak',window._ak);
 let _lastFetch = 0;
 
 // API key loaded from localStorage or Firebase
