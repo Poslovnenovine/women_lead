@@ -690,31 +690,40 @@ function regenEmail(){
 
 async function generateEmail(){
   if(!_emodLead) return;
-  const l = _emodLead;
-  document.getElementById("emodBody").innerHTML='<div class="emod-loading"><div class="spin"></div><br>Claude piše email...</div>';
-  document.getElementById("emodTitle").textContent=l.ko;
-  document.getElementById("emodFooter").style.display="none";
-  let apiKey = localStorage.getItem("w100_ak") || window._ak || "";
-  if(!apiKey){try{const r=await fetch("https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json");apiKey=await r.json()||"";}catch(e){}}
-  if(!apiKey){document.getElementById("emodBody").innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">&#9888; API ključ nije postavljen.<br><br>Otvori F12 → Console, upisi <b>allow pasting</b>, pa:<br><code>localStorage.setItem("w100_ak","TVOJ_KLJUC")</code></div>';return;}
-  const ko=l.ko,ime=l.ime||"",kat=l.kat,prv=ime?ime.split(" ")[0]+",":"";
+  var l=_emodLead;
+  var eb=document.getElementById("emodBody");
+  var et=document.getElementById("emodTitle");
+  var ef=document.getElementById("emodFooter");
+  eb.innerHTML='<div class="emod-loading"><div class="spin"></div><br>Generisanje emaila...</div>';
+  et.textContent=l.ko; ef.style.display="none";
+  var ak=localStorage.getItem("w100_ak")||window._ak||"";
+  if(!ak){
+    try{var rk=await fetch("https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json");ak=await rk.json()||"";}catch(ex){}
+  }
+  if(!ak){
+    eb.innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">API kljuc nije postavljen.<br>F12 > Console > upisi allow pasting > Enter<br>pa: localStorage.setItem("w100_ak","KLJUC")</div>';
+    return;
+  }
+  var prompt="Napisi personalizirani prodajni email za Women 100 EXPO 2026. Kompanija: "+l.ko+". Kontakt: "+(l.ime||"")+". Kategorija: "+l.kat+". Personalizuj za ovu kategoriju. Template: Postovana "+(l.ime?l.ime.split(" ")[0]+",":"")+" Kontaktiramo vas za WOMEN 100 SHOP & SHOW EXPO 2026 (30-31. maja, Skenderija Sarajevo). 100+ izlagaca, 10.000 posjetilaca. Benefiti: digitalna promocija, katalog 365 dana, PR vidljivost. Srdacno, Women 100 Poslovne novine. Vrati JSON: {\"subject\":\"...\",\"body\":\"...\"}";
   try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:800,messages:[{role:"user",content:"Napisi personalizirani prodajni email za Women 100 EXPO 2026. Kompanija:"+ko+". Kontakt:"+ime+". Kategorija:"+kat+". Personalizuj. Template: Postovana "+prv+" Kontaktiramo vas za WOMEN 100 EXPO 2026 sajam 30-31. maja Skenderija Sarajevo. 100+ izlagaca, 10.000 posjetilaca. Benefiti: digitalna promocija, katalog 365 dana, PR vidljivost. Srdacno Women 100 Poslovne novine. Vrati JSON: {subject:...,body:...}"}]})})
-    const d=await res.json();
-    if(!res.ok)throw new Error(d.error?d.error.message:res.status);
-    const raw=d.content[0].text;
-    const m=raw.match(/\{[\s\S]*?"subject"[\s\S]*?"body"[\s\S]*?\}/);
-    let subj="WOMEN 100 EXPO 2026",body=raw;
-    if(m){try{const p=JSON.parse(m[0]);subj=p.subject||subj;body=p.body||raw;}catch(e){}}
+    var res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":ak,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:800,messages:[{role:"user",content:prompt}]})});
+    var dd=await res.json();
+    if(!res.ok) throw new Error(dd.error?dd.error.message:String(res.status));
+    var raw=dd.content[0].text;
+    var m=raw.match(/\{[\s\S]*?"subject"[\s\S]*?"body"[\s\S]*?\}/);
+    var subj="WOMEN 100 EXPO 2026",body=raw;
+    if(m){try{var p=JSON.parse(m[0]);subj=p.subject||subj;body=p.body||raw;}catch(pe){}}
     _emodSubject=subj;
-    document.getElementById("emodTitle").textContent="✓ Email spreman";
-    document.getElementById("emodBody").innerHTML='<div class="emod-subject">Subject</div><div class="emod-subject-val" id="emodSubjectVal">'+subj+'</div><div class="emod-subject">Poruka</div><textarea class="emod-text" id="emodTextArea" rows="14">'+body+'</textarea>';
-    document.getElementById("emodFooter").style.display="flex";
-  }catch(e){
-    document.getElementById("emodBody").innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">&#9888; '+e.message+'<br><br><button class="emod-btn" onclick="generateEmail()">↻ Pokusaj ponovo</button></div>';
+    et.textContent="Email spreman";
+    eb.innerHTML='<div class="emod-subject">Subject</div><div class="emod-subject-val" id="emodSubjectVal">'+subj+'</div><div class="emod-subject">Poruka</div><textarea class="emod-text" id="emodTextArea" rows="14">'+body+'</textarea>';
+    ef.style.display="flex";
+  }catch(ex2){
+    eb.innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">Greska: '+ex2.message+'<br><button class="emod-btn" onclick="generateEmail()">Pokusaj ponovo</button></div>';
   }
 }
-
 function copyEmail(){
   const subj = document.getElementById('emodSubjectVal')?.textContent || _emodSubject || '';
   const body = document.getElementById('emodTextArea')?.value || '';
