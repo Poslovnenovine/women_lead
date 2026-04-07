@@ -664,8 +664,8 @@ function closeEmailModal(){
 
 function saveApiKey(){
   const key = document.getElementById('apiKeyInput').value.trim();
-  if(!key || !key.startsWith('sk-')){
-    alert('Neispravan API ključ. Mora počinjati sa "sk-"');
+  if(!key || key.length < 20){
+    alert('Unesite API ključ (minimalno 20 znakova)');
     return;
   }
   localStorage.setItem('w100_apikey', key);
