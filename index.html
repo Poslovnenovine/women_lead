@@ -694,17 +694,28 @@ async function generateEmail(){
   document.getElementById('emodBody').innerHTML='<div class="emod-loading"><div class="spin"></div><br>Claude piše email...</div>';
   document.getElementById('emodTitle').textContent=l.ko;
   document.getElementById('emodFooter').style.display='none';
-  // Get key: localStorage first (set by user via console), then Firebase
-  let apiKey = localStorage.getItem('w100_ak') || '';
-  if(!apiKey) {
-    try { const r=await fetch('https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json'); apiKey=await r.json()||''; } catch(e){}
+  let apiKey = localStorage.getItem('w100_ak') || window._ak || '';
+  if(!apiKey){
+    try{const r=await fetch('https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json');apiKey=await r.json()||'';}catch(e){}
   }
-  if(!apiKey){document.getElementById('emodBody').innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">⚠ API ključ nije postavljen.<br>Kontaktirajte admina.</div>';return;}
-  const prompt=`Napiši personalizirani prodajni email za Women 100 SHOP & SHOW EXPO 2026. Kompanija: ${l.ko}. Kontakt: ${l.ime||''}. Kategorija: ${l.kat}. Personalizuj za ovu kategoriju i kompaniju. Koristite template: Poštovana ${l.ime?l.ime.split(' ')[0]+',':''} Kontaktiramo vas za WOMEN 100 EXPO 2026 sajam (30-31. maja, Skenderija Sarajevo). Ovaj sajam će okupiti 100+ izlagača i 10.000 posjetilaca. Benefiti: digitalna promocija, online katalog 365 dana, PR vidljivost. Srdačno, Women 100 | Poslovne novine d.o.o. Sarajevo. Vrati JSON: {"subject":"...","body":"..."}`;
+  if(!apiKey){
+    closeEmailModal();
+    document.getElementById('apiKeyBanner').style.display='flex';
+    setTimeout(()=>document.getElementById('apiKeyInput').focus(),100);
+    return;
+  }
+  const prompt=`Napiši personalizirani prodajni email za Women 100 SHOP & SHOW EXPO 2026. Kompanija: ${l.ko}. Kontakt: ${l.ime||''}. Kategorija: ${l.kat}. Personalizuj za ovu kategoriju. Template: Poštovana ${l.ime?l.ime.split(' ')[0]+',':''} Kontaktiramo vas za WOMEN 100 EXPO 2026 (30-31. maja, Skenderija Sarajevo, 100+ izlagača, 10.000 posjetilaca). Benefiti: digitalna promocija, online katalog 365 dana, PR vidljivost. Srdačno, Women 100 | Poslovne novine. Vrati JSON: {"subject":"...","body":"..."}`;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:800,messages:[{role:'user',content:prompt}]})});
     const d=await res.json();
-    if(!res.ok)throw new Error(d.error?.message||res.status);
+    if(!res.ok){
+      if(d.error?.type==='authentication_error'){
+        localStorage.removeItem('w100_ak'); window._ak='';
+        document.getElementById('emodBody').innerHTML='<div style="padding:20px;color:#c0392b;font-size:13px">⚠ API ključ je nevažeći.<br><br><button class="emod-btn" onclick="closeEmailModal();document.getElementById('apiKeyBanner').style.display='flex'">🔑 Upiši novi ključ</button></div>';
+        return;
+      }
+      throw new Error(d.error?.message||res.status);
+    }
     const raw=d.content[0].text;
     const m=raw.match(/\{[\s\S]*?"subject"[\s\S]*?"body"[\s\S]*?\}/);
     let subj='WOMEN 100 EXPO 2026',body=raw;
@@ -747,8 +758,8 @@ function openInMail(){
 const FB_URL = 'https://women100-ce14d-default-rtdb.firebaseio.com';
 const FB_KEY = 'AIzaSyC2U-anEj3D1LpuuhbtpQ7MKtHja26H85s';
 
-window._ak = localStorage.getItem('w100_ak') || ''; localStorage.setItem('w100_ak',window._ak);
-window._ak = localStorage.getItem('w100_ak') || '';localStorage.setItem('w100_ak',window._ak);
+window._ak = localStorage.getItem('w100_ak') || ''; 
+window._ak = localStorage.getItem('w100_ak') || '';
 let _lastFetch = 0;
 
 // API key loaded from localStorage or Firebase
@@ -908,5 +919,36 @@ setTimeout(fbInit, 500);
     </div>
   </div>
 </div>
+
+<div id="apiKeyBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a1a1a;padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.3)">
+  <span style="color:#f0c040;font-size:13px;font-weight:600">🔑 Upiši Anthropic API ključ:</span>
+  <input id="apiKeyInput" type="password" placeholder="sk-ant-api03-..." 
+    style="flex:1;padding:8px 12px;border-radius:8px;border:none;font-size:12px;font-family:monospace;outline:none;max-width:500px"/>
+  <button onclick="saveApiKeyFromBanner()" 
+    style="padding:8px 16px;background:#f0c040;color:#111;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px">
+    Spremi ✓
+  </button>
+  <button onclick="document.getElementById('apiKeyBanner').style.display='none'" 
+    style="padding:8px 12px;background:#333;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px">
+    ✕
+  </button>
+</div>
+<script>
+function saveApiKeyFromBanner(){
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if(!k || !k.startsWith('sk-')){alert('Neispravan ključ — mora počinjati sa sk-');return;}
+  window._ak = k;
+  localStorage.setItem('w100_ak', k);
+  fetch('https://women100-ce14d-default-rtdb.firebaseio.com/config/apikey.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(k)});
+  document.getElementById('apiKeyBanner').style.display='none';
+  document.getElementById('apiKeyInput').value='';
+  alert('✅ Ključ sačuvan! Generisanje emaila je sada aktivno.');
+}
+// Show banner if no key
+window.addEventListener('load', function(){
+  const k = localStorage.getItem('w100_ak') || window._ak || '';
+  if(!k) document.getElementById('apiKeyBanner').style.display='flex';
+});
+</script>
 </body>
 </html>
